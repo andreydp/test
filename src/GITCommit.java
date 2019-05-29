@@ -1,17 +1,25 @@
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PushCommand;
-import org.eclipse.jgit.api.RemoteAddCommand;
-import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.FileTreeIterator;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.List;
 
 public class GITCommit {
     public static void commitAllChanges(Repository repository, final String message) {
@@ -38,6 +46,8 @@ public class GITCommit {
 
                 final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
                 System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
+            } else {
+                System.out.println("No changes to commit");
             }
         } catch (final Exception e) {
             throw new IllegalStateException(
@@ -45,24 +55,34 @@ public class GITCommit {
         }
     }
 
-    private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException {
+    private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
         final Git git = new Git(localRepo);
-        // add remote repo:
         RemoteAddCommand remoteAddCommand = git.remoteAdd();
         remoteAddCommand.setName("origin");
         remoteAddCommand.setUri(new URIish(httpUrl));
-        // you can add more settings here if needed
-
         remoteAddCommand.call();
-
-        // push to remote:
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
-        // you can add more settings here if needed
         pushCommand.call();
         Iterable<PushResult> results = pushCommand.call();
+        String expectedRevision;
+        boolean failed = false;
         for (PushResult result : results) {
-            System.out.println("Pushed " + result.getMessages() + " " + result.getURI());
+            System.out.println("Pushing...  " + result.getMessages() + " Remote repository: " + result.getURI());
+            for (RemoteRefUpdate update : result.getRemoteUpdates()) {
+                RemoteRefUpdate.Status status = update.getStatus();
+                if (!(status.equals(RemoteRefUpdate.Status.OK) || status.equals(RemoteRefUpdate.Status.UP_TO_DATE))) {
+                    expectedRevision = update.getExpectedOldObjectId().getName();
+                    System.out.println("Push FAILED!...  Status: " + status.toString());
+                    System.out.println("Please update/fix your working copy first");
+                    System.out.println("Expected remote revision: " + expectedRevision);
+                    failed = true;
+                }
+            }
+        }
+        if (failed) {
+            System.out.println("Resetting working tree softly to origin/master...");
+            git.reset().setMode(ResetCommand.ResetType.SOFT).setRef("origin/master").call();
         }
     }
 
@@ -79,7 +99,7 @@ public class GITCommit {
                 e.printStackTrace();
             }
 
-            commitAllChanges(localRepo, "test commit from jgit");
+            commitAllChanges(localRepo, "AutoCommit " + new java.util.Date());
 
             pushToRemoteRepo(localRepo, httpUrl, user, password);
 
@@ -88,7 +108,4 @@ public class GITCommit {
         }
 
     }
-
-
 }
-
