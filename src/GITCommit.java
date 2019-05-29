@@ -33,7 +33,7 @@ public class GITCommit {
             result = true;
         }
 
-        // Check current repo, i.e. if changes fetched and and not applied
+        // Check against current repo, i.e. if changes fetched and and not applied
         else if (!currentNewRevision.equals(currentRevision))
         {
             System.out.println("Current repo has newer revision not merged " + remoteNewRevision);
