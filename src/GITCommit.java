@@ -56,7 +56,7 @@ public class GITCommit {
 
         // push to remote:
         PushCommand pushCommand = git.push();
-        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("andrey", "password"));
+        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         // you can add more settings here if needed
         pushCommand.call();
     }
