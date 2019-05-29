@@ -31,3 +31,5 @@ frontend/bin/hs_err*
 frontend/bin/nohup.out
 frontend/cfg/*.prld
 logs/*
+src/GITCommit.java
+test.txt

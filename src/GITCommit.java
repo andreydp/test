@@ -10,6 +10,7 @@ import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class GITCommit {
     public static void commitAllChanges(Repository repository, final String message) {
@@ -17,11 +18,12 @@ public class GITCommit {
             final Git git = new Git(repository);
             git.add().addFilepattern(".").call();
             final Status status = git.status().call();
-            if (status.getChanged().size() > 0 || status.getAdded().size() > 0
-                    || status.getModified().size() > 0
-                    || status.getRemoved().size() > 0) {
+            if (status.getConflicting().size() > 0) {
+                System.err.println("**** error: One or more conflicts are found. Manual intervention is required!");
+            }
+            if (status.getChanged().size() > 0 || status.getAdded().size() > 0 || status.getRemoved().size() > 0) {
                 System.out.println("Modified:");
-                for (String s : status.getModified()) {
+                for (String s : status.getChanged()) {
                     System.out.println(s);
                 }
                 System.out.println("Added:");
@@ -32,7 +34,6 @@ public class GITCommit {
                 for (String s : status.getMissing()) {
                     System.out.println(s);
                 }
-                System.out.println("Unversioned:");
 
                 final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
                 System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
@@ -43,11 +44,28 @@ public class GITCommit {
         }
     }
 
+    private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException {
+        final Git git = new Git(localRepo);
+        // add remote repo:
+        RemoteAddCommand remoteAddCommand = git.remoteAdd();
+        remoteAddCommand.setName("origin");
+        remoteAddCommand.setUri(new URIish(httpUrl));
+        // you can add more settings here if needed
+
+        remoteAddCommand.call();
+
+        // push to remote:
+        PushCommand pushCommand = git.push();
+        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("andrey", "password"));
+        // you can add more settings here if needed
+        pushCommand.call();
+    }
+
     public static void main(String[] args) {
         String localPath = "D:\\InfoReach\\Test\\test\\.git";
-        String httpUrl = "https://gitlab.inforeachinc.com/svn/TMSall.git";
-        String user = "";
-        String password = "";
+        String httpUrl = "https://github.com/andreydp/test.git";
+        String user = "poletaiev@gmail.com";
+        String password = "mygithub99";
         try {
             Repository localRepo = null;
             try {
@@ -58,25 +76,14 @@ public class GITCommit {
 
             commitAllChanges(localRepo, "test commit from jgit");
 
-//            git.commit().setMessage( "Test jgit commit" ).call();
+            pushToRemoteRepo(localRepo, httpUrl, user, password);
 
-            // add remote repo:
-//            RemoteAddCommand remoteAddCommand = git.remoteAdd();
-//            remoteAddCommand.setName("origin");
-//            remoteAddCommand.setUri(new URIish(httpUrl));
-            // you can add more settings here if needed
-
-//            remoteAddCommand.call();
-
-            // push to remote:
-//            PushCommand pushCommand = git.push();
-//            pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider("andrey", "password"));
-            // you can add more settings here if needed
-//            pushCommand.call();
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
+
+
 }
 
