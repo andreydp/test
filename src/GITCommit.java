@@ -6,6 +6,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
@@ -59,6 +60,10 @@ public class GITCommit {
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         // you can add more settings here if needed
         pushCommand.call();
+        Iterable<PushResult> results = pushCommand.call();
+        for (PushResult result : results) {
+            System.out.println("Pushed " + result.getMessages() + " " + result.getURI() + " updates: " + result.getRemoteUpdates().toString());
+        }
     }
 
     public static void main(String[] args) {
