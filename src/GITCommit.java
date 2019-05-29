@@ -62,7 +62,7 @@ public class GITCommit {
         pushCommand.call();
         Iterable<PushResult> results = pushCommand.call();
         for (PushResult result : results) {
-            System.out.println("Pushed " + result.getMessages() + " " + result.getURI() + " updates: " + result.getRemoteUpdates().toString());
+            System.out.println("Pushed " + result.getMessages() + " " + result.getURI());
         }
     }
 
