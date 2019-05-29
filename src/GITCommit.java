@@ -46,8 +46,8 @@ public class GITCommit {
     public static void main(String[] args) {
         String localPath = "D:\\InfoReach\\Test\\test\\.git";
         String httpUrl = "https://gitlab.inforeachinc.com/svn/TMSall.git";
-        String user = "andrey@poletaev@inforeachinc.com";
-        String password = "cydyadHuv8";
+        String user = "";
+        String password = "";
         try {
             Repository localRepo = null;
             try {
