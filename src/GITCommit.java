@@ -62,7 +62,8 @@ public class GITCommit {
                 final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
                 System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
             } else {
-                System.out.println("No changes to commit");
+                System.out.println("No changes to commit! Exiting...");
+                System.exit(0);
             }
         } catch (final Exception e) {
             throw new IllegalStateException(
