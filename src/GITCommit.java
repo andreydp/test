@@ -104,6 +104,10 @@ public class GITCommit {
                     System.out.println("Expected remote revision: " + expectedRevision);
                     failed = true;
                 }
+                else
+                {
+                    System.out.println("Push successful! " + update.getNewObjectId().getName());
+                }
             }
         }
         if (failed) {
