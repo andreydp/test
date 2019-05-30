@@ -17,15 +17,13 @@ public class GITCommit {
         String currentNewRevision = git.getRepository().resolve("master").getName();
 
         // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
-        if (!remoteNewRevision.equals(currentRevision))
-        {
+        if (!remoteNewRevision.equals(currentRevision)) {
             System.out.println("Remote has newer revision: " + remoteNewRevision);
             result = true;
         }
 
         // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
-        else if (!currentNewRevision.equals(currentRevision))
-        {
+        else if (!currentNewRevision.equals(currentRevision)) {
             System.out.println("Current repo has newer revision not merged " + remoteNewRevision);
             result = true;
         }
@@ -50,7 +48,7 @@ public class GITCommit {
                 for (String s : status.getChanged()) {
                     System.out.println(s);
                 }
-                if (status.getAdded().size() > 0)  System.out.println("Added:");
+                if (status.getAdded().size() > 0) System.out.println("Added:");
                 for (String s : status.getAdded()) {
                     System.out.println(s);
                 }
@@ -94,9 +92,7 @@ public class GITCommit {
                     System.out.println("Please update/fix your working copy first");
                     System.out.println("Expected remote revision: " + expectedRevision);
                     failed = true;
-                }
-                else
-                {
+                } else {
                     System.out.println("Push successful! " + update.getNewObjectId().getName());
                 }
             }
@@ -121,7 +117,6 @@ public class GITCommit {
             }
 
             commitAllChanges(localRepo, "AutoCommit " + new java.util.Date());
-
             pushToRemoteRepo(localRepo, httpUrl, user, password);
 
         } catch (Exception e) {
