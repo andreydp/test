@@ -72,9 +72,7 @@ public class GITCommit {
     private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
         final Git git = new Git(localRepo);
         String currentRevision = git.getRepository().resolve("HEAD").getName();
-        RemoteAddCommand remoteAddCommand = git.remoteAdd();
-        remoteAddCommand.setName("origin");
-        remoteAddCommand.setUri(new URIish(httpUrl));
+        RemoteAddCommand remoteAddCommand = git.remoteAdd().setName("origin").setUri(new URIish(httpUrl));
         remoteAddCommand.call();
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
