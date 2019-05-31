@@ -1,22 +1,12 @@
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectReader;
-import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.*;
-import org.eclipse.jgit.treewalk.AbstractTreeIterator;
-import org.eclipse.jgit.treewalk.CanonicalTreeParser;
-import org.eclipse.jgit.treewalk.FileTreeIterator;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.List;
 
 public class GITCommit {
 
@@ -27,15 +17,13 @@ public class GITCommit {
         String currentNewRevision = git.getRepository().resolve("master").getName();
 
         // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
-        if (!remoteNewRevision.equals(currentRevision))
-        {
+        if (!remoteNewRevision.equals(currentRevision)) {
             System.out.println("Remote has newer revision: " + remoteNewRevision);
             result = true;
         }
 
-        // Check against current repo, i.e. if changes fetched and and not applied
-        else if (!currentNewRevision.equals(currentRevision))
-        {
+        // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
+        else if (!currentNewRevision.equals(currentRevision)) {
             System.out.println("Current repo has newer revision not merged " + remoteNewRevision);
             result = true;
         }
@@ -60,7 +48,7 @@ public class GITCommit {
                 for (String s : status.getChanged()) {
                     System.out.println(s);
                 }
-                if (status.getAdded().size() > 0)  System.out.println("Added:");
+                if (status.getAdded().size() > 0) System.out.println("Added:");
                 for (String s : status.getAdded()) {
                     System.out.println(s);
                 }
@@ -72,7 +60,8 @@ public class GITCommit {
                 final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
                 System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
             } else {
-                System.out.println("No changes to commit");
+                System.out.println("No changes to commit! Exiting...");
+                System.exit(0);
             }
         } catch (final Exception e) {
             throw new IllegalStateException(
@@ -83,9 +72,7 @@ public class GITCommit {
     private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
         final Git git = new Git(localRepo);
         String currentRevision = git.getRepository().resolve("HEAD").getName();
-        RemoteAddCommand remoteAddCommand = git.remoteAdd();
-        remoteAddCommand.setName("origin");
-        remoteAddCommand.setUri(new URIish(httpUrl));
+        RemoteAddCommand remoteAddCommand = git.remoteAdd().setName("origin").setUri(new URIish(httpUrl));
         remoteAddCommand.call();
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
@@ -103,6 +90,8 @@ public class GITCommit {
                     System.out.println("Please update/fix your working copy first");
                     System.out.println("Expected remote revision: " + expectedRevision);
                     failed = true;
+                } else {
+                    System.out.println("Push successful! " + update.getNewObjectId().getName());
                 }
             }
         }
@@ -126,7 +115,6 @@ public class GITCommit {
             }
 
             commitAllChanges(localRepo, "AutoCommit " + new java.util.Date());
-
             pushToRemoteRepo(localRepo, httpUrl, user, password);
 
         } catch (Exception e) {
