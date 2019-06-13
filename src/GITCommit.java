@@ -1,7 +1,9 @@
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.*;
 
 import java.io.File;
@@ -16,21 +18,24 @@ public class GITCommit {
 
     public static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
-
-        String remoteNewRevision = git.fetch().setDryRun(true).call().getAdvertisedRef(Constants.HEAD).getObjectId().getName();
-        String currentNewRevision = git.getRepository().resolve("master").getName();
+        RevCommit remoteLatestCommit, currentLatestCommit;
+        ObjectId remoteNewRevisionId = git.fetch().setDryRun(true).setCredentialsProvider(new UsernamePasswordCredentialsProvider(GIT_USER, GIT_PASSWORD)).call().getAdvertisedRef(Constants.HEAD).getObjectId();
+        try (RevWalk revWalk = new RevWalk(git.getRepository())) {
+            remoteLatestCommit = revWalk.parseCommit(remoteNewRevisionId);
+            currentLatestCommit = revWalk.parseCommit(git.getRepository().resolve("master"));
+        }
 
         // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
-        if (!remoteNewRevision.equals(currentRevision)) {
-            printAndLog(log, "Remote has newer revision: " + remoteNewRevision);
-            result = true;
-        }
-
-        // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
-        else if (!currentNewRevision.equals(currentRevision)) {
-            printAndLog(log,"Current repo has newer revision not merged " + remoteNewRevision);
-            result = true;
-        }
+//        if (!remoteNewRevision.equals(currentRevision)) {
+//            printAndLog(log, "Remote has newer revision: " + remoteNewRevision);
+//            result = true;
+//        }
+//
+//        // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
+//        else if (!currentNewRevision.equals(currentRevision)) {
+//            printAndLog(log,"Current repo has newer revision not merged " + remoteNewRevision);
+//            result = true;
+//        }
         return result;
     }
 
