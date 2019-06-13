@@ -122,7 +122,7 @@ public class GITCommit {
             }
             if(!isCommitted || !isPushed)
             {
-                printAndLog(logAll, "Commit/Push failed! Resetting to previous revision....");
+                printAndLog(logAll, "Commit/Push failed! Resetting to previous revision...");
                 git.reset().setMode(ResetCommand.ResetType.SOFT).setRef(currentRevision).call();
             }
 
