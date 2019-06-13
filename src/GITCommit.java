@@ -8,11 +8,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 
 public class GITCommit {
     final static String DIR_TO_COMMIT = "D:/InfoReach/Test/test/";
-    final static String GIT_URL = "https://github.com/andreydp/test.git";
     final static String GIT_USER = "poletaiev@gmail.com";
     final static String GIT_PASSWORD = "mygithub99";
 
@@ -83,13 +81,12 @@ public class GITCommit {
         return okToCommit;
     }
 
-    private static void pushToRemoteRepo(Appendable log, Git git, String httpUrl, String user, String password) throws GitAPIException, IOException {
+    private static void pushToRemoteRepo(Appendable log, Git git, String user, String password) throws GitAPIException, IOException {
         String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
 //        RemoteAddCommand remoteAddCommand = git.remoteAdd();
 //        remoteAddCommand.call();
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
-        pushCommand.call();
         Iterable<PushResult> results = pushCommand.call();
         String expectedRevision;
         boolean failed = false;
@@ -125,7 +122,7 @@ public class GITCommit {
             Git git = Git.init().setDirectory(new File(DIR_TO_COMMIT)).call();
             boolean isCommitted = commitAllChanges(git, "AutoCommit " + new java.util.Date(), logAll);
             if (isCommitted) {
-                pushToRemoteRepo(logAll, git, GIT_URL, GIT_USER, GIT_PASSWORD);
+                pushToRemoteRepo(logAll, git, GIT_USER, GIT_PASSWORD);
             }
 
         } catch (Exception e) {
