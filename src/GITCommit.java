@@ -16,7 +16,7 @@ public class GITCommit {
     final static String GIT_USER = "poletaiev@gmail.com";
     final static String GIT_PASSWORD = "mygithub99";
 
-    public static boolean isCurrentBranchForward(Git git, String currentRevision) throws GitAPIException, IOException {
+    public static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
 
         String remoteNewRevision = git.fetch().setDryRun(true).call().getAdvertisedRef("HEAD").getObjectId().getName();
@@ -24,13 +24,13 @@ public class GITCommit {
 
         // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
         if (!remoteNewRevision.equals(currentRevision)) {
-            System.out.println("Remote has newer revision: " + remoteNewRevision);
+            printAndLog(log, "Remote has newer revision: " + remoteNewRevision);
             result = true;
         }
 
         // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
         else if (!currentNewRevision.equals(currentRevision)) {
-            System.out.println("Current repo has newer revision not merged " + remoteNewRevision);
+            printAndLog(log,"Current repo has newer revision not merged " + remoteNewRevision);
             result = true;
         }
         return result;
@@ -40,7 +40,7 @@ public class GITCommit {
         boolean okToCommit = true;
         try {
             String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
-            if (isCurrentBranchForward(git, currentRevision)) {
+            if (isCurrentBranchForward(log, git, currentRevision)) {
                 printAndLog(log, "There are undelivered changes. Won't commit. Exiting...");
                 okToCommit = false;
             }
