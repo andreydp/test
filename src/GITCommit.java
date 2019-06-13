@@ -81,10 +81,7 @@ public class GITCommit {
         return okToCommit;
     }
 
-    private static void pushToRemoteRepo(Appendable log, Git git, String user, String password) throws GitAPIException, IOException {
-        String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
-//        RemoteAddCommand remoteAddCommand = git.remoteAdd();
-//        remoteAddCommand.call();
+    private static boolean pushToRemoteRepo(Appendable log, Git git, String user, String password) throws GitAPIException, IOException {
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         Iterable<PushResult> results = pushCommand.call();
@@ -101,14 +98,11 @@ public class GITCommit {
                     printAndLog(log, "Expected remote revision: " + expectedRevision);
                     failed = true;
                 } else {
-                    System.out.println("Push successful! " + update.getNewObjectId().getName());
+                    printAndLog(log, "Push successful! " + update.getNewObjectId().getName());
                 }
             }
         }
-        if (failed) {
-            printAndLog(log, "Resetting working tree softly to previous revision: " + currentRevision);
-            git.reset().setMode(ResetCommand.ResetType.SOFT).setRef(currentRevision).call();
-        }
+        return failed;
     }
 
     static void printAndLog(Appendable log, String s) throws IOException {
@@ -120,9 +114,16 @@ public class GITCommit {
         try {
             StringBuilder logAll = new StringBuilder();
             Git git = Git.init().setDirectory(new File(DIR_TO_COMMIT)).call();
+            String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
             boolean isCommitted = commitAllChanges(git, "AutoCommit " + new java.util.Date(), logAll);
+            boolean isPushed = false;
             if (isCommitted) {
-                pushToRemoteRepo(logAll, git, GIT_USER, GIT_PASSWORD);
+                isPushed = pushToRemoteRepo(logAll, git, GIT_USER, GIT_PASSWORD);
+            }
+            if(!isCommitted || !isPushed)
+            {
+                printAndLog(logAll, "Commit/Push failed! Resetting to previous revision....");
+                git.reset().setMode(ResetCommand.ResetType.SOFT).setRef(currentRevision).call();
             }
 
         } catch (Exception e) {
