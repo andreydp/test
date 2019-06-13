@@ -19,7 +19,7 @@ public class GITCommit {
     public static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
 
-        String remoteNewRevision = git.fetch().setDryRun(true).call().getAdvertisedRef("HEAD").getObjectId().getName();
+        String remoteNewRevision = git.fetch().setDryRun(true).call().getAdvertisedRef(Constants.HEAD).getObjectId().getName();
         String currentNewRevision = git.getRepository().resolve("master").getName();
 
         // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
@@ -81,7 +81,7 @@ public class GITCommit {
     }
 
     private static void pushToRemoteRepo(Appendable log, Git git, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
-        String currentRevision = git.getRepository().resolve("HEAD").getName();
+        String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
         RemoteAddCommand remoteAddCommand = git.remoteAdd().setName("origin").setUri(new URIish(httpUrl));
         remoteAddCommand.call();
         PushCommand pushCommand = git.push();
@@ -106,15 +106,14 @@ public class GITCommit {
             }
         }
         if (failed) {
-            System.out.println("Resetting working tree softly to previous revision: " + currentRevision);
+            printAndLog(log, "Resetting working tree softly to previous revision: " + currentRevision);
             git.reset().setMode(ResetCommand.ResetType.SOFT).setRef(currentRevision).call();
         }
     }
 
     static void printAndLog(Appendable log, String s) throws IOException {
         System.out.println(s);
-        log.append(s);
-        log.append("\n");
+        log.append(s).append("\n");
     }
 
     public static void main(String[] args) {
