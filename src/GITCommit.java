@@ -52,7 +52,7 @@ public class GITCommit {
                 for (String s : status.getAdded()) {
                     System.out.println(s);
                 }
-                if (status.getRemoved().size() > 0) System.out.println("Deleted:");
+                if (status.getMissing().size() > 0) System.out.println("Deleted:");
                 for (String s : status.getMissing()) {
                     System.out.println(s);;
                 }
