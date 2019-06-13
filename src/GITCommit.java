@@ -54,7 +54,7 @@ public class GITCommit {
                 }
                 if (status.getRemoved().size() > 0) System.out.println("Deleted:");
                 for (String s : status.getMissing()) {
-                    System.out.println(s);
+                    System.out.println(s);;
                 }
 
                 final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
