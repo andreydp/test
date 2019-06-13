@@ -1,14 +1,20 @@
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
 public class GITCommit {
+    final static String DIR_TO_COMMIT = "D:/InfoReach/Test/test/";
+    final static String GIT_URL = "https://github.com/andreydp/test.git";
+    final static String GIT_USER = "poletaiev@gmail.com";
+    final static String GIT_PASSWORD = "mygithub99";
 
     public static boolean isCurrentBranchForward(Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
@@ -30,47 +36,51 @@ public class GITCommit {
         return result;
     }
 
-    public static void commitAllChanges(Repository repository, final String message) {
+    public static boolean commitAllChanges(Git git, final String message, Appendable log) throws IOException {
+        boolean okToCommit = true;
         try {
-            final Git git = new Git(repository);
-            String currentRevision = git.getRepository().resolve("HEAD").getName();
+            String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
             if (isCurrentBranchForward(git, currentRevision)) {
-                System.out.println("There are undelivered changes. Won't commit. Exiting...");
-                System.exit(1);
+                printAndLog(log, "There are undelivered changes. Won't commit. Exiting...");
+                okToCommit = false;
             }
             git.add().addFilepattern(".").call();
             final Status status = git.status().call();
             if (status.getConflicting().size() > 0) {
-                System.err.println("**** error: One or more conflicts are found. Manual intervention is required!");
+                printAndLog(log, "**** error: One or more conflicts are found. Manual intervention is required!");
+                okToCommit = false;
             }
             if (status.getChanged().size() > 0 || status.getAdded().size() > 0 || status.getRemoved().size() > 0) {
-                if (status.getChanged().size() > 0) System.out.println("Modified:");
-                for (String s : status.getChanged()) {
-                    System.out.println(s);
+                if (status.getChanged().size() > 0)
+                    for (String s : status.getChanged()) {
+                        printAndLog(log, "modified " + s);
+                    }
+                if (status.getAdded().size() > 0)
+                    for (String s : status.getAdded()) {
+                        printAndLog(log, "added " + s);
+                    }
+                if (status.getMissing().size() > 0)
+                    for (String s : status.getMissing()) {
+                        printAndLog(log, "deleted " + s);
+                    }
+                if (okToCommit) {
+                    final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
+                    System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
                 }
-                if (status.getAdded().size() > 0) System.out.println("Added:");
-                for (String s : status.getAdded()) {
-                    System.out.println(s);
-                }
-                if (status.getMissing().size() > 0) System.out.println("Deleted:");
-                for (String s : status.getMissing()) {
-                    System.out.println(s);;
-                }
-
-                final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
-                System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
             } else {
                 System.out.println("No changes to commit! Exiting...");
                 System.exit(0);
             }
-        } catch (final Exception e) {
-            throw new IllegalStateException(
-                    "Could not commit changes to local Git repository", e);
+        } catch (Exception e) {
+
+            printAndLog(log, "**** error: Could not commit changes to local Git repository.");
+            printAndLog(log, e.toString());
+            return false;
         }
+        return okToCommit;
     }
 
-    private static void pushToRemoteRepo(Repository localRepo, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
-        final Git git = new Git(localRepo);
+    private static void pushToRemoteRepo(Appendable log, Git git, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
         String currentRevision = git.getRepository().resolve("HEAD").getName();
         RemoteAddCommand remoteAddCommand = git.remoteAdd().setName("origin").setUri(new URIish(httpUrl));
         remoteAddCommand.call();
@@ -86,9 +96,9 @@ public class GITCommit {
                 RemoteRefUpdate.Status status = update.getStatus();
                 if (!(status.equals(RemoteRefUpdate.Status.OK) || status.equals(RemoteRefUpdate.Status.UP_TO_DATE))) {
                     expectedRevision = update.getExpectedOldObjectId().getName();
-                    System.out.println("Push FAILED!...  Status: " + status.toString());
-                    System.out.println("Please update/fix your working copy first");
-                    System.out.println("Expected remote revision: " + expectedRevision);
+                    printAndLog(log, "Push FAILED!...  Status: " + status.toString());
+                    printAndLog(log, "Please update/fix your working copy first");
+                    printAndLog(log, "Expected remote revision: " + expectedRevision);
                     failed = true;
                 } else {
                     System.out.println("Push successful! " + update.getNewObjectId().getName());
@@ -101,21 +111,22 @@ public class GITCommit {
         }
     }
 
-    public static void main(String[] args) {
-        String localPath = "D:\\InfoReach\\Test\\test\\.git";
-        String httpUrl = "https://github.com/andreydp/test.git";
-        String user = "poletaiev@gmail.com";
-        String password = "mygithub99";
-        try {
-            Repository localRepo = null;
-            try {
-                localRepo = new FileRepository(localPath);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    static void printAndLog(Appendable log, String s) throws IOException {
+        System.out.println(s);
+        log.append(s);
+        log.append("\n");
+    }
 
-            commitAllChanges(localRepo, "AutoCommit " + new java.util.Date());
-            pushToRemoteRepo(localRepo, httpUrl, user, password);
+    public static void main(String[] args) {
+        try {
+            StringBuilder logAll = new StringBuilder();
+            Git git = Git.init().setDirectory(new File(DIR_TO_COMMIT)).call();
+            boolean isCommitted = commitAllChanges(git, "AutoCommit " + new java.util.Date(), logAll);
+            if (isCommitted) {
+                pushToRemoteRepo(logAll, git, GIT_URL, GIT_USER, GIT_PASSWORD);
+            } else {
+                System.exit(1);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
