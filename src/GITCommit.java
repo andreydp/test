@@ -86,7 +86,7 @@ public class GITCommit {
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         Iterable<PushResult> results = pushCommand.call();
         String expectedRevision;
-        boolean failed = false;
+        boolean pushedOk = false;
         for (PushResult result : results) {
             System.out.println("Pushing...  " + result.getMessages() + " Remote repository: " + result.getURI());
             for (RemoteRefUpdate update : result.getRemoteUpdates()) {
@@ -96,13 +96,14 @@ public class GITCommit {
                     printAndLog(log, "Push FAILED!...  Status: " + status.toString());
                     printAndLog(log, "Please update/fix your working copy first");
                     printAndLog(log, "Expected remote revision: " + expectedRevision);
-                    failed = true;
+                    pushedOk = false;
                 } else {
                     printAndLog(log, "Push successful! " + update.getNewObjectId().getName());
+                    pushedOk = true;
                 }
             }
         }
-        return failed;
+        return pushedOk;
     }
 
     static void printAndLog(Appendable log, String s) throws IOException {
