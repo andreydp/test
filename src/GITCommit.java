@@ -1,13 +1,13 @@
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URISyntaxException;
 
 public class GITCommit {
@@ -65,25 +65,28 @@ public class GITCommit {
                     }
                 if (okToCommit) {
                     final RevCommit rev = git.commit().setAll(true).setMessage(message).call();
-                    System.out.println(("Git commit " + rev.getName() + " [" + message + "]"));
+                    printAndLog(log, "Git commit " + rev.getName() + " [" + message + "]");
                 }
             } else {
-                System.out.println("No changes to commit! Exiting...");
+                printAndLog(log, "No changes to commit! Exiting...");
                 System.exit(0);
             }
         } catch (Exception e) {
 
-            printAndLog(log, "**** error: Could not commit changes to local Git repository.");
-            printAndLog(log, e.toString());
+            printAndLog(log, "**** error: Unexpected error happened. Manual intervention is required.");
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            printAndLog(log, sw.toString());
             return false;
         }
         return okToCommit;
     }
 
-    private static void pushToRemoteRepo(Appendable log, Git git, String httpUrl, String user, String password) throws GitAPIException, URISyntaxException, IOException {
+    private static void pushToRemoteRepo(Appendable log, Git git, String httpUrl, String user, String password) throws GitAPIException, IOException {
         String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
-        RemoteAddCommand remoteAddCommand = git.remoteAdd().setName("origin").setUri(new URIish(httpUrl));
-        remoteAddCommand.call();
+//        RemoteAddCommand remoteAddCommand = git.remoteAdd();
+//        remoteAddCommand.call();
         PushCommand pushCommand = git.push();
         pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         pushCommand.call();
@@ -123,8 +126,6 @@ public class GITCommit {
             boolean isCommitted = commitAllChanges(git, "AutoCommit " + new java.util.Date(), logAll);
             if (isCommitted) {
                 pushToRemoteRepo(logAll, git, GIT_URL, GIT_USER, GIT_PASSWORD);
-            } else {
-                System.exit(1);
             }
 
         } catch (Exception e) {
