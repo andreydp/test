@@ -33,3 +33,4 @@ frontend/cfg/*.prld
 logs/*
 src/GITCommit.java
 test.txt
+/src/out/

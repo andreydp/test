@@ -1,3 +1,4 @@
+import com.jcraft.jsch.Session;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
@@ -10,33 +11,66 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 
 public class GITCommit {
     final static String DIR_TO_COMMIT = "D:/InfoReach/Test/test/";
-    final static String GIT_USER = "poletaiev@gmail.com";
-    final static String GIT_PASSWORD = "mygithub99";
 
-    public static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
+    static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
+
+//        CloneCommand cloneCommand = Git.cloneRepository();
+//        cloneCommand.setURI("git@github.com:andreydp/test.git");
+//        cloneCommand.setTransportConfigCallback(new TransportConfigCallback() {
+//            @Override
+//            public void configure(Transport transport) {
+//                SshTransport sshTransport = (SshTransport) transport;
+//                sshTransport.setSshSessionFactory(getSshSessionFactory());
+//            }
+//        });
+//        cloneCommand.setDirectory(new File("D:\\test")).call();
+
         RevCommit remoteLatestCommit, currentLatestCommit;
-        ObjectId remoteNewRevisionId = git.fetch().setDryRun(true).setCredentialsProvider(new UsernamePasswordCredentialsProvider(GIT_USER, GIT_PASSWORD)).call().getAdvertisedRef(Constants.HEAD).getObjectId();
-        try (RevWalk revWalk = new RevWalk(git.getRepository())) {
-            remoteLatestCommit = revWalk.parseCommit(remoteNewRevisionId);
-            currentLatestCommit = revWalk.parseCommit(git.getRepository().resolve("master"));
+        FetchCommand fetchCommand = git.fetch();
+        fetchCommand.setRefSpecs(new RefSpec("refs/heads/*:refs/heads/*"));
+        fetchCommand.setTransportConfigCallback(new TransportConfigCallback() {
+            @Override
+            public void configure(Transport transport) {
+                SshTransport sshTransport = (SshTransport) transport;
+                sshTransport.setSshSessionFactory(getSshSessionFactory());
+            }
+        });
+        fetchCommand.setRemote(git.getRepository().getConfig().getString("remote", "origin", "url"));
+        ObjectId remoteNewRevisionId = fetchCommand.setDryRun(true).call().getAdvertisedRef(Constants.HEAD).getObjectId();
+        RevWalk revWalk = new RevWalk(git.getRepository());
+        remoteLatestCommit = revWalk.parseCommit(remoteNewRevisionId);
+        currentLatestCommit = revWalk.parseCommit(git.getRepository().resolve("master"));
+
+        //Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
+        if (!currentLatestCommit.equals(remoteLatestCommit)) {
+            printAndLog(log, "Remote has different latest revision: " + remoteLatestCommit.getName());
+            printAndLog(log, "Date: " + new SimpleDateFormat("yyyy-MM-dd hh:mm").format(remoteLatestCommit.getCommitterIdent().getWhen()));
+            printAndLog(log, "Author: " + remoteLatestCommit.getCommitterIdent().getEmailAddress());
+            printAndLog(log, "Message: " + remoteLatestCommit.getFullMessage());
+            result = true;
         }
 
-        // Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
-//        if (!remoteNewRevision.equals(currentRevision)) {
-//            printAndLog(log, "Remote has newer revision: " + remoteNewRevision);
-//            result = true;
-//        }
-//
-//        // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
-//        else if (!currentNewRevision.equals(currentRevision)) {
-//            printAndLog(log,"Current repo has newer revision not merged " + remoteNewRevision);
-//            result = true;
-//        }
+        // Check against current repo, i.e. if changes fetched and and not applied. VERY VERY BAD CASE!!!
+        else if (!currentLatestCommit.getName().equals(currentRevision)) {
+            printAndLog(log, "Current repo has newer revision not merged " + currentLatestCommit.getName());
+            result = true;
+        }
         return result;
+    }
+
+
+    public static SshSessionFactory getSshSessionFactory() {
+        SshSessionFactory sshSessionFactory = new JschConfigSessionFactory() {
+            @Override
+            protected void configure(OpenSshConfig.Host host, Session session) {
+            }
+        };
+        return sshSessionFactory;
     }
 
     public static boolean commitAllChanges(Git git, final String message, Appendable log) throws IOException {
@@ -86,9 +120,8 @@ public class GITCommit {
         return okToCommit;
     }
 
-    private static boolean pushToRemoteRepo(Appendable log, Git git, String user, String password) throws GitAPIException, IOException {
+    private static boolean pushToRemoteRepo(Appendable log, Git git) throws GitAPIException, IOException {
         PushCommand pushCommand = git.push();
-        pushCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user, password));
         Iterable<PushResult> results = pushCommand.call();
         String expectedRevision;
         boolean pushedOk = false;
@@ -124,10 +157,9 @@ public class GITCommit {
             boolean isCommitted = commitAllChanges(git, "AutoCommit " + new java.util.Date(), logAll);
             boolean isPushed = false;
             if (isCommitted) {
-                isPushed = pushToRemoteRepo(logAll, git, GIT_USER, GIT_PASSWORD);
+                isPushed = pushToRemoteRepo(logAll, git);
             }
-            if(!isCommitted || !isPushed)
-            {
+            if (!isCommitted || !isPushed) {
                 printAndLog(logAll, "Commit/Push failed! Resetting to previous revision...");
                 git.reset().setMode(ResetCommand.ResetType.SOFT).setRef(currentRevision).call();
             }
