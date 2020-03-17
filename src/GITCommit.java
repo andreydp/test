@@ -65,6 +65,7 @@ public class GITCommit {
     public static boolean pullChangesFromRemote(Git git, Appendable log) throws IOException {
         try {
             git.pull().call();
+            printAndLog(log,"Pull successfull!");
         } catch (GitAPIException e) {
             log.append(e.getMessage());
             return false;
@@ -77,7 +78,7 @@ public class GITCommit {
         try {
             String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
             if (isCurrentBranchForward(log, git, currentRevision)) {
-                printAndLog(log, "There are undelivered changes. Trying to pull...");
+                printAndLog(log, "Trying to pull undelivered changes...");
                 okToCommit = pullChangesFromRemote(git, log);
             }
             if (!okToCommit) {
