@@ -65,7 +65,7 @@ public class GITCommit {
     public static boolean pullChangesFromRemote(Git git, Appendable log) throws IOException {
         try {
             git.pull().call();
-            printAndLog(log,"Pull successfull!");
+            printAndLog(log,"Pull successful!");
         } catch (GitAPIException e) {
             log.append(e.getMessage());
             return false;
