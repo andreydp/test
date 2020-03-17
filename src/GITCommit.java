@@ -19,17 +19,6 @@ public class GITCommit {
     static boolean isCurrentBranchForward(Appendable log, Git git, String currentRevision) throws GitAPIException, IOException {
         boolean result = false;
 
-//        CloneCommand cloneCommand = Git.cloneRepository();
-//        cloneCommand.setURI("git@github.com:andreydp/test.git");
-//        cloneCommand.setTransportConfigCallback(new TransportConfigCallback() {
-//            @Override
-//            public void configure(Transport transport) {
-//                SshTransport sshTransport = (SshTransport) transport;
-//                sshTransport.setSshSessionFactory(getSshSessionFactory());
-//            }
-//        });
-//        cloneCommand.setDirectory(new File("D:\\test")).call();
-
         RevCommit remoteLatestCommit, currentLatestCommit;
         FetchCommand fetchCommand = git.fetch();
         fetchCommand.setRefSpecs(new RefSpec("refs/heads/*:refs/heads/*"));
@@ -73,12 +62,26 @@ public class GITCommit {
         return sshSessionFactory;
     }
 
+    public static boolean pullChangesFromRemote(Git git, Appendable log) throws IOException {
+        try {
+            git.pull().call();
+        } catch (GitAPIException e) {
+            log.append(e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
     public static boolean commitAllChanges(Git git, final String message, Appendable log) throws IOException {
         boolean okToCommit = true;
         try {
             String currentRevision = git.getRepository().resolve(Constants.HEAD).getName();
             if (isCurrentBranchForward(log, git, currentRevision)) {
-                printAndLog(log, "There are undelivered changes. Won't commit. Exiting...");
+                printAndLog(log, "There are undelivered changes. Trying to pull...");
+                okToCommit = pullChangesFromRemote(git, log);
+            }
+            if (!okToCommit) {
+                printAndLog(log, "There are undelivered changes. Unable to pull and commit.");
                 okToCommit = false;
             }
             git.add().addFilepattern(".").call();
