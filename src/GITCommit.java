@@ -35,7 +35,7 @@ public class GITCommit {
         remoteLatestCommit = revWalk.parseCommit(remoteNewRevisionId);
         currentLatestCommit = revWalk.parseCommit(git.getRepository().resolve("master"));
 
-        //Check against remote repo, i.e. if there are new commits not fetched, dryRun = true
+        //Check against remote repo, i.e. if there are new commits not fetched, dryRun = true. test
         if (!currentLatestCommit.equals(remoteLatestCommit)) {
             printAndLog(log, "Remote has different latest revision: " + remoteLatestCommit.getName());
             printAndLog(log, "Date: " + new SimpleDateFormat("yyyy-MM-dd hh:mm").format(remoteLatestCommit.getCommitterIdent().getWhen()));
